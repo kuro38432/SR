@@ -57,7 +57,7 @@ int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
         sr_arp_hdr_t * arp_hdr = (sr_arp_hdr_t *)(packet + size_ether);
 
         struct sr_if * iface = sr_get_interface(sr, req->packets->iface);
-        code = populate_arp_request(arp_hdr, iface->addr, iface->ip, req->ip);
+        code = populate_arp_request(arp_hdr, iface->addr, iface->ip, ntohl(req->ip));
         if (code != 0) {
             printf("Could not populate arp header for arp request\n");
             free(packet);
