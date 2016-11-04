@@ -16,8 +16,68 @@
   checking whether we should resend an request or destroy the arp request.
   See the comments in the header file for an idea of what it should look like.
 */
-void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-    /* Fill this in */
+void sr_arpcache_sweepreqs(struct sr_instance *sr) {
+    struct sr_arpcache *cache = &(sr->cache);
+    struct sr_arpreq * req = cache->requests;
+    while (req != NULL) {
+        handle_arpreq(req, sr);
+        req = req->next;
+    }
+}
+
+int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
+    struct sr_arpcache *cache = &(sr->cache);
+    int code = -1;
+    /* get current time */
+    time_t now = time(NULL);
+    /* if more than 1 sec */
+    if (difftime(now, req->sent) > 1.0) {
+        /* if sent more than 5 times, loop through packets and send icmp for all */
+        if (req->times_sent >= 5) {
+            struct sr_packet * packet = req->packets;
+            while (packet != NULL) {
+                uint8_t * ip_packet = (packet->buf) + size_ether;
+                sr_ip_hdr_t * ip_hdr = (sr_ip_hdr_t *) ip_packet;
+                struct sr_if * iface = sr_get_interface(sr, packet->iface);
+                code = handle_unreachable_packet(1, ip_hdr, ip_packet, iface, sr);
+                if (code != 0) {
+                    printf("Error: Could not handle destination host unreachable\n");
+                    return -1;
+                }
+                packet = packet->next;
+            }
+            sr_arpreq_destroy(cache, req);
+            return 0;
+        }
+        /* if not sent more than 5 times, send again */
+        req->times_sent ++;
+        req->sent = now;
+        uint8_t * packet = (uint8_t *)malloc(size_ether + size_arp);
+        sr_ethernet_hdr_t * ether_hdr = (sr_ethernet_hdr_t *) packet;
+        sr_arp_hdr_t * arp_hdr = (sr_arp_hdr_t *)(packet + size_ether);
+
+        struct sr_if * iface = sr_get_interface(sr, req->packets->iface);
+        code = populate_arp_request(arp_hdr, iface->addr, iface->ip, req->ip);
+        if (code != 0) {
+            printf("Could not populate arp header for arp request\n");
+            free(packet);
+            return -1;
+        }
+        code = populate_arp_request_ethernet(ether_hdr, iface->addr);
+        if (code != 0) {
+            printf("Could not populate ethernet header for arp request\n");
+            free(packet);
+            return -1;
+        }
+        code = sr_send_packet(sr, packet, size_ether + size_arp, iface->name);
+        free(packet);
+        if (code != 0) {
+            printf("Error: Could not send arp reply packet\n");
+            return -1;
+        }
+        return 0;
+    }
+    return 0;
 }
 
 /* You should not need to touch the rest of this code. */
