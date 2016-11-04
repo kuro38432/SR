@@ -480,10 +480,11 @@ int populate_icmp_t3(sr_icmp_t3_hdr_t * icmp_hdr, int code, uint8_t * ip_packet)
 
 int populate_arp_reply(sr_arp_hdr_t * arp_hdr, unsigned char * sha, 
                        unsigned char * tha, uint32_t sip, uint32_t tip) {
-  arp_hdr->ar_hrd = arp_hrd_ethernet;
-  arp_hdr->ar_pro = ethertype_ip;
+  arp_hdr->ar_hrd = htons(arp_hrd_ethernet);
+  arp_hdr->ar_pro = htons(ethertype_ip);
   arp_hdr->ar_hln = ETHER_ADDR_LEN;
   arp_hdr->ar_pln = 4;
+  arp_hdr->ar_op = htons(arp_op_reply);
   arp_hdr->ar_sip = sip;
   arp_hdr->ar_tip = tip;
   memcpy(arp_hdr->ar_sha, sha, ETHER_ADDR_LEN);
@@ -493,7 +494,7 @@ int populate_arp_reply(sr_arp_hdr_t * arp_hdr, unsigned char * sha,
 
 int populate_ethernet(sr_ethernet_hdr_t * ether_hdr, unsigned char * ether_dhost, 
                       unsigned char * ether_shost, int ether_type) {
-  ether_hdr->ether_type = ether_type;
+  ether_hdr->ether_type = htons(ether_type);
   memcpy(ether_hdr->ether_dhost, ether_dhost, ETHER_ADDR_LEN);
   memcpy(ether_hdr->ether_shost, ether_shost, ETHER_ADDR_LEN);
   return 0;
@@ -524,10 +525,11 @@ struct sr_rt * lookup_rt(uint32_t ip, struct sr_instance * sr) {
 
 int populate_arp_request(sr_arp_hdr_t * arp_hdr, unsigned char * sha,
                          uint32_t sip, uint32_t tip) {
-  arp_hdr->ar_hrd = arp_hrd_ethernet;
-  arp_hdr->ar_pro = ethertype_ip;
+  arp_hdr->ar_hrd = htons(arp_hrd_ethernet);
+  arp_hdr->ar_pro = htons(ethertype_ip);
   arp_hdr->ar_hln = ETHER_ADDR_LEN;
   arp_hdr->ar_pln = 4;
+  arp_hdr->ar_op = htons(arp_op_request);
   arp_hdr->ar_sip = sip;
   arp_hdr->ar_tip = tip;
   memcpy(arp_hdr->ar_sha, sha, ETHER_ADDR_LEN);
@@ -536,7 +538,7 @@ int populate_arp_request(sr_arp_hdr_t * arp_hdr, unsigned char * sha,
 }
 
 int populate_arp_request_ethernet(sr_ethernet_hdr_t * ether_hdr, unsigned char * ether_shost) {
-  ether_hdr->ether_type = ethertype_arp;
+  ether_hdr->ether_type = htons(ethertype_arp);
   memcpy(ether_hdr->ether_shost, ether_shost, ETHER_ADDR_LEN);
   memset(ether_hdr->ether_dhost, -1, ETHER_ADDR_LEN);
   return 0;
