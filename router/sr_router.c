@@ -221,7 +221,7 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct s
     return -1;
   }
 
-  code = populate_ip(packet_ip, ip_hdr->ip_len, ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src, ip_hdr->ip_ttl);
+  code = populate_ip(packet_ip, ip_hdr->ip_len, ip_protocol_icmp, iface->ip, ip_hdr->ip_src, ip_hdr->ip_ttl);
   if (code != 0) {
     printf("Error: Could not populate ip header for icmp echo reply\n");
     return -1;
@@ -254,7 +254,7 @@ int handle_unreachable_packet(int code, sr_ip_hdr_t * ip_hdr, uint8_t * ip_packe
     return -1;
   }
 
-  errcode = populate_ip(packet_ip, htons(size_icmp_t3 + size_ip), ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src, 30);
+  errcode = populate_ip(packet_ip, htons(size_icmp_t3 + size_ip), ip_protocol_icmp, iface->ip, ip_hdr->ip_src, 30);
   if (errcode != 0) {
     printf("Error: Could not populate ip header for icmp unreachable\n");
     free(packet);
@@ -292,7 +292,7 @@ int handle_dead_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if *
   }
 
   code = populate_ip(packet_ip, htons(size_icmp + ICMP_DATA_SIZE + size_ip), 
-                     ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src, 30);
+                     ip_protocol_icmp, iface->ip, ip_hdr->ip_src, 30);
   if (code != 0) {
     printf("Error: Could not populate ip header for icmp time exceeded\n");
     free(packet);
