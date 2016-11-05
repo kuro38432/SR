@@ -211,7 +211,7 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * icmp_packet, struct
 
   /* malloc */
   int icmp_len = ip_hdr->ip_len - size_ip;
-  uint8_t * packet = (uint8_t *)malloc(icmp_len + size_ip);
+  uint8_t * packet = (uint8_t *)malloc(ip_hdr->ip_len);
 
   /* copy icmp data */
   memcpy(packet + size_ip, icmp_packet, icmp_len);
@@ -228,7 +228,7 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * icmp_packet, struct
     return -1;
   }
 
-  code = populate_ip(packet_ip, icmp_len + size_ip, ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src);
+  code = populate_ip(packet_ip, ip_hdr->ip_len, ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src);
   if (code != 0) {
     printf("Error: Could not populate ip header for icmp echo reply\n");
     free(packet);
@@ -460,7 +460,7 @@ int populate_icmp(sr_icmp_hdr_t * icmp_hdr, int type, int code, int len) {
 
 int populate_ip(sr_ip_hdr_t * ip_hdr, int ip_len, int ip_protocol, 
                 uint32_t ip_src, uint32_t ip_dst) {
-  ip_hdr->ip_len = htons(ip_len);
+  ip_hdr->ip_len = ip_len;
   /* TTL set to 30 for the moment */
   ip_hdr->ip_ttl = 30;
   ip_hdr->ip_p = ip_protocol;
