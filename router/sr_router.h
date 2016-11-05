@@ -89,7 +89,7 @@ int handle_arp_request(sr_arp_hdr_t * arp_hdr, struct sr_if * iface, struct sr_i
 int handle_arp_reply(sr_arp_hdr_t * arp_hdr, struct sr_instance * sr);
 
 int populate_icmp(sr_icmp_hdr_t * icmp_hdr, int type, int code, int len);
-int populate_ip(sr_ip_hdr_t * ip_hdr, int ip_len, int ip_protocol, uint32_t ip_src, uint32_t ip_dst);
+int populate_ip(sr_ip_hdr_t * ip_hdr, int ip_len, int ip_protocol, uint32_t ip_src, uint32_t ip_dst, int ttl);
 int populate_icmp_t3(sr_icmp_t3_hdr_t * icmp_hdr, int code, uint8_t * ip_packet);
 int populate_arp_reply(sr_arp_hdr_t * arp_hdr, unsigned char * sha, unsigned char * tha, uint32_t sip, uint32_t tip);
 int populate_ethernet(sr_ethernet_hdr_t * ether_hdr, 
