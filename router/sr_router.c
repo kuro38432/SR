@@ -418,8 +418,6 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
 
   /* search arp cache */
   uint32_t ip = rt->gw.s_addr;
-  printf("dest IP caching: ");
-  print_addr_ip_int(ip);
   struct sr_arpcache * cache = &(sr->cache);
   struct sr_arpentry * arp_entry = sr_arpcache_lookup(cache, ip);
 
@@ -439,12 +437,11 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
   }
 
   /* not found, so queue req */
-  struct sr_arpreq * req = sr_arpcache_queuereq(cache, htonl(ip), packet, packet_len, iface->name);
+  struct sr_arpreq * req = sr_arpcache_queuereq(cache, ip, packet, packet_len, iface->name);
   if (req == NULL) {
     printf("Error: Could not queue arp request\n");
     return -1;
   }
-  free(req);
   return 0;
 }
 
