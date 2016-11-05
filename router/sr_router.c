@@ -347,6 +347,10 @@ int handle_arp_request(sr_arp_hdr_t * arp_hdr, struct sr_if * iface, struct sr_i
     return -1;
   }
 
+  /* TESTING PRINT */
+  printf("Reply: \n");
+  print_hdrs(packet, size_ether + size_arp);
+
   /* send packet */
   code = sr_send_packet(sr, packet, size_ether + size_arp, iface->name);
   free(packet);
@@ -371,6 +375,7 @@ int handle_arp_reply(sr_arp_hdr_t * arp_hdr, struct sr_instance * sr) {
     while (walker != NULL) {
       sr_ethernet_hdr_t * packet = (sr_ethernet_hdr_t *)(walker->buf);
       memcpy(packet->ether_dhost, arp_hdr->ar_sha, ETHER_ADDR_LEN);
+
       code = sr_send_packet(sr, walker->buf, walker->len, walker->iface);
       if (code != 0) {
         /* CAREFUL: possible memory not being freed */
