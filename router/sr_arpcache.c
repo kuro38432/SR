@@ -10,6 +10,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -69,6 +70,11 @@ int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
             free(packet);
             return -1;
         }
+
+        /* TESTING PRINT */
+        printf("Request: \n");
+        print_hdrs(packet, size_ether + size_arp);
+
         code = sr_send_packet(sr, packet, size_ether + size_arp, iface->name);
         free(packet);
         if (code != 0) {
