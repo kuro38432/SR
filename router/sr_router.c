@@ -460,11 +460,9 @@ int populate_icmp(sr_icmp_hdr_t * icmp_hdr, int type, int code, int len) {
 
 int populate_ip(sr_ip_hdr_t * ip_hdr, int ip_len, int ip_protocol, 
                 uint32_t ip_src, uint32_t ip_dst) {
-  ip_hdr->ip_hl = 5;
-  ip_hdr->ip_v = 4;
   ip_hdr->ip_len = ip_len;
-  /* TTL set to 30 for the moment */
-  ip_hdr->ip_ttl = 30;
+  /* TTL set to 70 for the moment */
+  ip_hdr->ip_ttl = 70;
   ip_hdr->ip_p = ip_protocol;
   ip_hdr->ip_src = ip_src;
   ip_hdr->ip_dst = ip_dst;
