@@ -103,7 +103,7 @@ void sr_handlepacket(struct sr_instance* sr,
           sr_icmp_hdr_t * icmp_hdr = (sr_icmp_hdr_t *)icmp_packet;
           /* ICMP ECHO REUEST */
           if (icmp_hdr->icmp_type == 8) { 
-            code = handle_icmp_echo_request(ip_hdr, ip_packet, target_iface, sr);
+            code = handle_icmp_echo_request(ip_hdr, ip_packet, iface, sr);
             if (code != 0) {
               printf("Error: Could not handle ICMP echo request\n");
             }
@@ -112,7 +112,7 @@ void sr_handlepacket(struct sr_instance* sr,
         /* END - ICMP */
         /* UDP/TCP PAYLOAD */
         } else if (ip_proto == 6 || ip_proto == 17) {
-          code = handle_unreachable_packet(3, ip_hdr, ip_packet, target_iface, sr);
+          code = handle_unreachable_packet(3, ip_hdr, ip_packet, iface, sr);
           if (code != 0) {
             printf("Error: Could not handle TCP/UDP payload\n");
           }
