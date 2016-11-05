@@ -403,11 +403,11 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
   ip_hdr->ip_sum = sum;
 
   /* pack ethernet packet */
-  int packet_len = size_ether + ip_hdr->ip_len;
+  int packet_len = size_ether + ntohs(ip_hdr->ip_len);
   uint8_t * packet = (uint8_t *)malloc(packet_len);
   sr_ethernet_hdr_t * packet_ether = (sr_ethernet_hdr_t *) packet;
   /* copy over ip packet */
-  memcpy(packet + size_ether, ip_packet, ip_hdr->ip_len);
+  memcpy(packet + size_ether, ip_packet, ntohs(ip_hdr->ip_len));
   /* fill in packet, leave dhost blank */
   memcpy(packet_ether->ether_shost, iface->addr, ETHER_ADDR_LEN);
   packet_ether->ether_type = htons(ethertype_ip);
