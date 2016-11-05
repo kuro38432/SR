@@ -418,6 +418,7 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
 
   /* search arp cache */
   uint32_t ip = rt->gw.s_addr;
+  printf("dest IP: %d\n", ip);
   struct sr_arpcache * cache = &(sr->cache);
   struct sr_arpentry * arp_entry = sr_arpcache_lookup(cache, ip);
 
