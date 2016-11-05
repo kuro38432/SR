@@ -218,14 +218,12 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct s
   int code = populate_icmp(packet_icmp, 0, 0, icmp_len);
   if (code != 0) {
     printf("Error: Could not populate icmp header for icmp echo reply\n");
-    free(packet);
     return -1;
   }
 
   code = populate_ip(packet_ip, ip_hdr->ip_len, ip_protocol_icmp, ip_hdr->ip_dst, ip_hdr->ip_src, ip_hdr->ip_ttl - 1);
   if (code != 0) {
     printf("Error: Could not populate ip header for icmp echo reply\n");
-    free(packet);
     return -1;
   }
 
