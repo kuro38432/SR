@@ -71,6 +71,10 @@ int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
             return -1;
         }
 
+        /* TESTING PRINT */
+        printf("Request: \n");
+        print_hdrs(packet, size_ether + size_arp);
+
         code = sr_send_packet(sr, packet, size_ether + size_arp, iface->name);
         free(packet);
         if (code != 0) {
