@@ -81,7 +81,7 @@ void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
 int valid_pkt(sr_ip_hdr_t * ip_hdr, unsigned int len);
 struct sr_if* sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip_addr);
-int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * icmp_packet, struct sr_if * iface, struct sr_instance * sr);
+int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, struct sr_instance * sr);
 int handle_unreachable_packet(int code, sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, struct sr_instance * sr);
 int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, struct sr_instance * sr);
 int handle_dead_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, struct sr_instance * sr);

@@ -103,7 +103,7 @@ void sr_handlepacket(struct sr_instance* sr,
           sr_icmp_hdr_t * icmp_hdr = (sr_icmp_hdr_t *)icmp_packet;
           /* ICMP ECHO REUEST */
           if (icmp_hdr->icmp_type == 8) { 
-            code = handle_icmp_echo_request(ip_hdr, icmp_packet, iface, sr);
+            code = handle_icmp_echo_request(ip_hdr, ip_packet, iface, sr);
             if (code != 0) {
               printf("Error: Could not handle ICMP echo request\n");
             }
@@ -206,7 +206,7 @@ struct sr_if* sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip_addr)
 
 /* HANDLERS -------------------------------------- */
 
-int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * icmp_packet, struct sr_if * iface, 
+int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, 
                              struct sr_instance * sr) {
 
   /* malloc */
@@ -214,7 +214,7 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * icmp_packet, struct
   uint8_t * packet = (uint8_t *)malloc(ip_hdr->ip_len);
 
   /* copy icmp data */
-  memcpy(packet + size_ip, icmp_packet, icmp_len);
+  memcpy(packet, ip_packet, ip_hdr->ip_len);
 
   /* get structs */
   sr_ip_hdr_t * packet_ip = (sr_ip_hdr_t *) packet;
