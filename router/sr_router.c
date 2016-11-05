@@ -418,7 +418,7 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
   memcpy(packet + size_ether, ip_packet, ip_hdr->ip_len);
   /* fill in packet, leave dhost blank */
   memcpy(packet_ether->ether_shost, iface->addr, ETHER_ADDR_LEN);
-  packet_ether->ether_type = ethertype_ip;
+  packet_ether->ether_type = htons(ethertype_ip);
 
   /* search arp cache */
   uint32_t ip = rt->gw.s_addr;
