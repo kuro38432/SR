@@ -213,7 +213,18 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct s
   sr_ip_hdr_t * packet_ip = (sr_ip_hdr_t *) ip_packet;
   sr_icmp_hdr_t * packet_icmp = (sr_icmp_hdr_t *)(ip_packet + size_ip);
 
-  /* populate */
+  packet_icmp->icmp_type = 0;
+  packet_icmp->icmp_code = 0;
+  packet_icmp->icmp_sum = 0;
+  int sum = cksum((const void *)packet_icmp, ip_hdr->ip_len - size_ip);
+  packet_icmp->icmp_sum = sum;
+
+  uint32_t ip = packet_ip->ip_dst;
+  packet_ip->ip_dst = packet_ip->ip_src;
+  packet_ip->ip_src = ip;
+  packet_ip->ip_ttl -= 1;
+
+  /* populate 
   int icmp_len = ip_hdr->ip_len - size_ip;
   int code = populate_icmp(packet_icmp, 0, 0, icmp_len);
   if (code != 0) {
@@ -227,12 +238,14 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct s
     return -1;
   }
 
-  code = forward_ip_packet(packet_ip, ip_packet, iface, sr);
+  */
+
+  int code = forward_ip_packet(packet_ip, ip_packet, iface, sr);
   if (code != 0) {
     printf("Error: Could not forward ip packet for icmp echo reply\n");
     return -1;
   }
-
+  
   return 0;
 }
 
