@@ -533,6 +533,6 @@ int populate_arp_request(sr_arp_hdr_t * arp_hdr, unsigned char * sha,
 int populate_arp_request_ethernet(sr_ethernet_hdr_t * ether_hdr, unsigned char * ether_shost) {
   ether_hdr->ether_type = htons(ethertype_arp);
   memcpy(ether_hdr->ether_shost, ether_shost, ETHER_ADDR_LEN);
-  memset(ether_hdr->ether_dhost, -1, ETHER_ADDR_LEN);
+  memset(ether_hdr->ether_dhost, 255, ETHER_ADDR_LEN);
   return 0;
 }
