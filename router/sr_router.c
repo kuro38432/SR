@@ -445,7 +445,7 @@ int populate_icmp(sr_icmp_hdr_t * icmp_hdr, int type, int code, int len) {
   icmp_hdr->icmp_type = type;
   icmp_hdr->icmp_code = code;
   icmp_hdr->icmp_sum = 0;
-  int sum = cksum(icmp_hdr, len);
+  int sum = cksum((const void *)icmp_hdr, len);
   icmp_hdr->icmp_sum = sum;
   return 0;
 }
@@ -460,7 +460,7 @@ int populate_ip(sr_ip_hdr_t * ip_hdr, int ip_len, int ip_protocol,
   ip_hdr->ip_src = ip_src;
   ip_hdr->ip_dst = ip_dst;
   ip_hdr->ip_sum = 0;
-  int sum = cksum(ip_hdr, size_ip);
+  int sum = cksum((const void *)ip_hdr, size_ip);
   ip_hdr->ip_sum = sum;
   return 0;
 }
@@ -470,7 +470,7 @@ int populate_icmp_t3(sr_icmp_t3_hdr_t * icmp_hdr, int code, uint8_t * ip_packet)
   icmp_hdr->icmp_code = code;
   icmp_hdr->icmp_sum = 0;
   memcpy(icmp_hdr->data, ip_packet, ICMP_DATA_SIZE);
-  int sum = cksum(icmp_hdr, size_icmp_t3);
+  int sum = cksum((const void *)icmp_hdr, size_icmp_t3);
   icmp_hdr->icmp_sum = sum;
   return 0;
 }
