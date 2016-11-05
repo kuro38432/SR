@@ -398,6 +398,9 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
   int sum = cksum((const void *)ip_hdr, size_ip);
   ip_hdr->ip_sum = sum;
 
+  uint32_t ip = rt->gw.s_addr;
+  iface = sr_get_interface(sr, rt->interface);
+
   /* pack ethernet packet */
   int packet_len = size_ether + ntohs(ip_hdr->ip_len);
   uint8_t * packet = (uint8_t *)malloc(packet_len);
@@ -409,8 +412,6 @@ int forward_ip_packet(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * 
   packet_ether->ether_type = htons(ethertype_ip);
 
   /* search arp cache */
-  uint32_t ip = rt->gw.s_addr;
-  iface = sr_get_interface(sr, rt->interface);
   struct sr_arpcache * cache = &(sr->cache);
   struct sr_arpentry * arp_entry = sr_arpcache_lookup(cache, ip);
 
