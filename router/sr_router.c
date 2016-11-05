@@ -209,18 +209,12 @@ struct sr_if* sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip_addr)
 int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, 
                              struct sr_instance * sr) {
 
-  /* malloc */
-  int icmp_len = ip_hdr->ip_len - size_ip;
-  uint8_t * packet = (uint8_t *)malloc(ip_hdr->ip_len);
-
-  /* copy icmp data */
-  memcpy(packet, ip_packet, ip_hdr->ip_len);
-
   /* get structs */
-  sr_ip_hdr_t * packet_ip = (sr_ip_hdr_t *) packet;
-  sr_icmp_hdr_t * packet_icmp = (sr_icmp_hdr_t *)(packet + size_ip);
+  sr_ip_hdr_t * packet_ip = (sr_ip_hdr_t *) ip_packet;
+  sr_icmp_hdr_t * packet_icmp = (sr_icmp_hdr_t *)(ip_packet + size_ip);
 
   /* populate */
+  int icmp_len = ip_hdr->ip_len - size_ip;
   int code = populate_icmp(packet_icmp, 0, 0, icmp_len);
   if (code != 0) {
     printf("Error: Could not populate icmp header for icmp echo reply\n");
@@ -235,7 +229,7 @@ int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct s
     return -1;
   }
 
-  code = forward_ip_packet(packet_ip, packet, iface, sr);
+  code = forward_ip_packet(packet_ip, ip_packet, iface, sr);
   if (code != 0) {
     printf("Error: Could not forward ip packet for icmp echo reply\n");
     return -1;
