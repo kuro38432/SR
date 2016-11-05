@@ -372,6 +372,10 @@ int handle_arp_reply(sr_arp_hdr_t * arp_hdr, struct sr_instance * sr) {
       sr_ethernet_hdr_t * packet = (sr_ethernet_hdr_t *)(walker->buf);
       memcpy(packet->ether_dhost, arp_hdr->ar_sha, ETHER_ADDR_LEN);
 
+      /* TESTING PRINT */
+      printf("Forward: \n");
+      print_hdrs(walker->buf, walker->len);
+
       code = sr_send_packet(sr, walker->buf, walker->len, walker->iface);
       if (code != 0) {
         /* CAREFUL: possible memory not being freed */
