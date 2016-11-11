@@ -11,6 +11,7 @@
 #include "sr_if.h"
 #include "sr_protocol.h"
 #include "sr_utils.h"
+#include "sr_rt.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -32,14 +33,15 @@ int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
     /* get current time */
     time_t now = time(NULL);
     /* if more than 1 sec */
-    if (difftime(now, req->sent) > 1.0) {
+    if (difftime(now, req->sent) >= 1.0) {
         /* if sent more than 5 times, loop through packets and send icmp for all */
         if (req->times_sent >= 5) {
             struct sr_packet * packet = req->packets;
             while (packet != NULL) {
                 uint8_t * ip_packet = (packet->buf) + size_ether;
                 sr_ip_hdr_t * ip_hdr = (sr_ip_hdr_t *) ip_packet;
-                struct sr_if * iface = sr_get_interface(sr, packet->iface);
+                struct sr_rt * rt = lookup_rt(ip_hdr->ip_dst, sr);
+                struct sr_if * iface = sr_get_interface(sr, rt->interface);
                 code = handle_unreachable_packet(1, ip_hdr, ip_packet, iface, sr);
                 if (code != 0) {
                     printf("Error: Could not handle destination host unreachable\n");
@@ -51,7 +53,7 @@ int handle_arpreq(struct sr_arpreq * req, struct sr_instance *sr) {
             return 0;
         }
         /* if not sent more than 5 times, send again */
-        req->times_sent ++;
+        req->times_sent += 1;
         req->sent = now;
         uint8_t * packet = (uint8_t *)malloc(size_ether + size_arp);
         sr_ethernet_hdr_t * ether_hdr = (sr_ethernet_hdr_t *) packet;
