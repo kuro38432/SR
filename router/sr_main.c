@@ -44,6 +44,9 @@ extern char* optarg;
 #define DEFAULT_SERVER "localhost"
 #define DEFAULT_RTABLE "rtable"
 #define DEFAULT_TOPO 0
+#define DEFAULT_TIMEOUT_ICMP 60
+#define DEFAULT_TIMEOUT_E 7440
+#define DEFAULT_TIMEOUT_R 300
 
 static void usage(char* );
 static void sr_init_instance(struct sr_instance* );
@@ -66,10 +69,15 @@ int main(int argc, char **argv)
     unsigned int topo = DEFAULT_TOPO;
     char *logfile = 0;
     struct sr_instance sr;
+    struct sr_nat nat;
+    int use_nat = 0;
+    unsigned int timeout_icmp = DEFAULT_TIMEOUT_ICMP;
+    unsigned int timeout_tcp_E = DEFAULT_TIMEOUT_E;
+    unsigned int timeout_tcp_R = DEFAULT_TIMEOUT_R;
 
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:nI:E:R:")) != EOF)
     {
         switch (c)
         {
@@ -101,11 +109,28 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            case 'n':
+                use_nat = 1;
+                break;
+            case 'I':
+                timeout_icmp = atoi((char *) optarg);
+                break;
+            case 'E':
+                timeout_tcp_E = atoi((char *) optarg);
+                break;
+            case 'R':
+                timeout_tcp_R = atoi((char *) optarg);
+                break;
+
         } /* switch */
     } /* -- while -- */
 
     /* -- zero out sr instance -- */
     sr_init_instance(&sr);
+
+    
+
+    /* TODO: set the correct ip address */
 
     /* -- set up routing table from file -- */
     if(template == NULL) {
@@ -158,6 +183,15 @@ int main(int argc, char **argv)
 
     /* call router init (for arp subsystem etc.) */
     sr_init(&sr);
+    sr_nat_init(&nat);
+    nat.timeout_icmp = timeout_icmp;
+    nat.timeout_tcp_E = timeout_tcp_E;
+    nat.timeout_tcp_R = timeout_tcp_R;
+
+    sr.nat = NULL;
+    if (use_nat == 1) {
+        sr.nat = &nat;
+    }
 
     /* -- whizbang main loop ;-) */
     while( sr_read_from_server(&sr) == 1);

@@ -5,6 +5,10 @@
 #include <inttypes.h>
 #include <time.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "sr_router.h"
 
 typedef enum {
   nat_mapping_icmp,
@@ -32,6 +36,10 @@ struct sr_nat_mapping {
 struct sr_nat {
   /* add any fields here */
   struct sr_nat_mapping *mappings;
+  uint16_t aux_counter;
+  int timeout_icmp;
+  int timeout_tcp_E;
+  int timeout_tcp_R;
 
   /* threading */
   pthread_mutex_t lock;
@@ -58,7 +66,8 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 /* Insert a new mapping into the nat's mapping table.
    You must free the returned structure if it is not NULL. */
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
-  uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
+  uint32_t ip_int, uint16_t aux_int, uint32_t ip_ext, sr_nat_mapping_type type );
 
+void sr_nat_mapping_destroy(struct sr_nat_mapping *mapping);
 
 #endif

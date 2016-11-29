@@ -83,6 +83,8 @@ struct sr_icmp_hdr {
   uint8_t icmp_type;
   uint8_t icmp_code;
   uint16_t icmp_sum;
+  uint16_t icmp_id;
+  uint16_t icmp_seq;
   
 } __attribute__ ((packed)) ;
 typedef struct sr_icmp_hdr sr_icmp_hdr_t;
@@ -183,6 +185,42 @@ struct sr_arp_hdr
     uint32_t        ar_tip;             /* target IP address            */
 } __attribute__ ((packed)) ;
 typedef struct sr_arp_hdr sr_arp_hdr_t;
+
+
+struct sr_tcp_hdr
+{
+    uint16_t source_port;
+    uint16_t dest_port;
+    uint32_t seq_num;
+    uint32_t ack_num;
+    uint8_t data_offset;
+    #if __BYTE_ORDER == __LITTLE_ENDIAN
+        unsigned int fin:1; 
+        unsigned int syn:1; 
+        unsigned int rst:1; 
+        unsigned int psh:1; 
+        unsigned int ack:1;
+        unsigned int urg:1; 
+        unsigned int ece:1;
+        unsigned int cwr:1;
+    #elif __BYTE_ORDER == __BIG_ENDIAN
+        unsigned int cwr:1; 
+        unsigned int ece:1; 
+        unsigned int urg:1; 
+        unsigned int ack:1; 
+        unsigned int psh:1; 
+        unsigned int rst:1;
+        unsigned int syn:1; 
+        unsigned int fin:1; 
+    #else
+    #error "Byte ordering ot specified " 
+    #endif 
+    uint8_t flags;
+    uint16_t window_size;
+    uint16_t checksum;
+    uint16_t urgent_pointer;
+} __attribute__ ((packed)) ;
+typedef struct sr_tcp_hdr sr_tcp_hdr_t;
 
 #define sr_IFACE_NAMELEN 32
 

@@ -25,6 +25,7 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
 
   nat->mappings = NULL;
   /* Initialize any variables here */
+  nat->aux_counter = 1024;
 
   return success;
 }
@@ -35,11 +36,29 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
   pthread_mutex_lock(&(nat->lock));
 
   /* free nat memory here */
+  struct sr_nat_mapping *mapping = NULL;
+  struct sr_nat_mapping *next = NULL;
+  for (mapping = nat->mappings; mapping; mapping = next) {
+    next = mapping->next;
+    sr_nat_mapping_destroy(mapping);
+  }
 
   pthread_kill(nat->thread, SIGKILL);
   return pthread_mutex_destroy(&(nat->lock)) &&
     pthread_mutexattr_destroy(&(nat->attr));
 
+}
+
+void sr_nat_mapping_destroy(struct sr_nat_mapping *mapping) {
+  struct sr_nat_connection *conn = NULL;
+  struct sr_nat_connection *next = NULL;
+
+  for (conn = mapping->conns; conn; conn = next) {
+    next = conn->next;
+    free(conn);
+  }
+
+  free(mapping);
 }
 
 void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
@@ -49,9 +68,23 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timout handling */
     pthread_mutex_lock(&(nat->lock));
 
     time_t curtime = time(NULL);
+    int timeout;
 
     /* handle periodic tasks here */
-
+    struct sr_nat_mapping *mapping = NULL;
+    struct sr_nat_mapping *next = NULL;
+    for (mapping = nat->mappings; mapping; mapping = next) {
+      next = mapping->next;
+      /* get timeout */
+      if (mapping->type == nat_mapping_icmp) {
+        timeout = nat->timeout_icmp;
+      } else if (mapping->type == nat_mapping_tcp) {
+        timeout = nat->timeout_tcp_E;
+      }
+      if (difftime(curtime, mapping->last_updated) >= timeout) {
+        sr_nat_mapping_destroy(mapping);
+      }
+    }
     pthread_mutex_unlock(&(nat->lock));
   }
   return NULL;
@@ -66,6 +99,21 @@ struct sr_nat_mapping *sr_nat_lookup_external(struct sr_nat *nat,
 
   /* handle lookup here, malloc and assign to copy */
   struct sr_nat_mapping *copy = NULL;
+  struct sr_nat_mapping *entry = NULL;
+  struct sr_nat_mapping *walker = nat->mappings;
+
+  while (walker != NULL) {
+    if (walker->aux_ext == aux_ext) {
+      entry = walker;
+    }
+  }
+
+  /* Must return a copy b/c another thread could jump in and modify
+     table after we return. */
+  if (entry) {
+      copy = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping));
+      memcpy(copy, entry, sizeof(struct sr_nat_mapping));
+  }
 
   pthread_mutex_unlock(&(nat->lock));
   return copy;
@@ -80,6 +128,21 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
 
   /* handle lookup here, malloc and assign to copy. */
   struct sr_nat_mapping *copy = NULL;
+  struct sr_nat_mapping *entry = NULL;
+  struct sr_nat_mapping *walker = nat->mappings;
+
+  while (walker != NULL) {
+    if (walker->aux_int == aux_int && walker->ip_int == ip_int) {
+      entry = walker;
+    }
+  }
+
+  /* Must return a copy b/c another thread could jump in and modify
+     table after we return. */
+  if (entry) {
+      copy = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping));
+      memcpy(copy, entry, sizeof(struct sr_nat_mapping));
+  }
 
   pthread_mutex_unlock(&(nat->lock));
   return copy;
@@ -89,12 +152,36 @@ struct sr_nat_mapping *sr_nat_lookup_internal(struct sr_nat *nat,
    Actually returns a copy to the new mapping, for thread safety.
  */
 struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
-  uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type ) {
+  uint32_t ip_int, uint16_t aux_int, uint32_t ip_ext, sr_nat_mapping_type type ) {
 
   pthread_mutex_lock(&(nat->lock));
 
   /* handle insert here, create a mapping, and then return a copy of it */
   struct sr_nat_mapping *mapping = NULL;
+  struct sr_nat_mapping *entry = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping));
+  struct sr_nat_connection *conns = NULL;
+  if (type == nat_mapping_tcp) {
+    conns = (struct sr_nat_connection *) malloc(sizeof(struct sr_nat_connection));
+  }
+
+  /* assign values */
+  entry->type = type;
+  entry->ip_int = ip_int;
+  entry->ip_ext = ip_ext;
+  entry->aux_int = aux_int;
+  entry->aux_ext = nat->aux_counter;
+  entry->last_updated = time(NULL);
+  entry->conns = conns;
+  entry->next = nat->mappings;
+  nat->mappings = entry;
+
+  /* TODO: now just incrementing the port numbers.
+           need to implement when the port reaches max (65535)
+           which would probably rarely happen for this assignment */
+  nat->aux_counter += 1;
+
+  mapping = (struct sr_nat_mapping *) malloc(sizeof(struct sr_nat_mapping));
+  memcpy(mapping, entry, sizeof(struct sr_nat_mapping));
 
   pthread_mutex_unlock(&(nat->lock));
   return mapping;

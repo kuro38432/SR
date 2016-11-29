@@ -17,6 +17,7 @@
 
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
+#include "sr_nat.h"
 
 /* we dont like this debug , but what to do for varargs ? */
 #ifdef _DEBUG_
@@ -44,6 +45,7 @@ enum {
   size_icmp = sizeof(sr_icmp_hdr_t),
   size_icmp_t3 = sizeof(sr_icmp_t3_hdr_t),
   size_arp = sizeof(sr_arp_hdr_t),
+  size_tcp = sizeof(sr_tcp_hdr_t),
 };
 
 /* ----------------------------------------------------------------------------
@@ -66,6 +68,8 @@ struct sr_instance
     struct sr_arpcache cache;   /* ARP cache */
     pthread_attr_t attr;
     FILE* logfile;
+    struct sr_nat* nat;
+
 };
 
 /* -- sr_main.c -- */
@@ -97,6 +101,11 @@ int populate_ethernet(sr_ethernet_hdr_t * ether_hdr,
 int populate_arp_request(sr_arp_hdr_t * arp_hdr, unsigned char * sha, uint32_t sip, uint32_t tip);
 int populate_arp_request_ethernet(sr_ethernet_hdr_t * ether_hdr, unsigned char * ether_shost);
 struct sr_rt * lookup_rt(uint32_t ip, struct sr_instance * sr);
+
+int nat_icmp_internal(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr, int len);
+int nat_icmp_external(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr, int len);
+int nat_tcp_internal(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr);
+int nat_tcp_external(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr);
 
 /* -- sr_if.c -- */
 void sr_add_interface(struct sr_instance* , const char* );

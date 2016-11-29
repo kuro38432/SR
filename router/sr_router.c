@@ -93,16 +93,24 @@ void sr_handlepacket(struct sr_instance* sr,
     sr_ip_hdr_t * ip_hdr = (sr_ip_hdr_t *)ip_packet;
     /* check if packet is valid */
     if (valid_pkt(ip_hdr, len) == 0) {
+      uint8_t ip_proto = ip_protocol(ip_packet);
+      int internal = strcmp(iface->name, "eth1");
+      if (sr->nat != NULL) {
+        if (internal != 0) {
+          if (ip_proto == ip_protocol_icmp) {
+            nat_icmp_external(ip_hdr, ip_packet, sr, len);
+          }
+        }
+      }
       struct sr_if * target_iface = sr_get_interface_from_ip(sr, ip_hdr->ip_dst);
       /* IP FOR US */
       if(target_iface != NULL) {
-        uint8_t ip_proto = ip_protocol(ip_packet);
         /* ICMP */
         if (ip_proto == ip_protocol_icmp) { 
           uint8_t * icmp_packet = ip_packet + size_ip;
           sr_icmp_hdr_t * icmp_hdr = (sr_icmp_hdr_t *)icmp_packet;
           /* ICMP ECHO REUEST */
-          if (icmp_hdr->icmp_type == 8) { 
+          if (icmp_hdr->icmp_type == 8) {
             code = handle_icmp_echo_request(ip_hdr, ip_packet, iface, sr);
             if (code != 0) {
               printf("Error: Could not handle ICMP echo request\n");
@@ -111,7 +119,9 @@ void sr_handlepacket(struct sr_instance* sr,
           /* END - ICMP ECHO REQUEST */
         /* END - ICMP */
         /* UDP/TCP PAYLOAD */
-        } else if (ip_proto == 6 || ip_proto == 17) {
+        } else if (ip_proto == 6) {
+          /*do something */
+        } else if (ip_proto == 17) {
           code = handle_unreachable_packet(3, ip_hdr, ip_packet, iface, sr);
           if (code != 0) {
             printf("Error: Could not handle TCP/UDP payload\n");
@@ -123,6 +133,13 @@ void sr_handlepacket(struct sr_instance* sr,
       } else {
         /* FORWARD PACKET */
         if (ip_hdr->ip_ttl > 1) {
+          if (sr->nat != NULL) {
+            if (internal == 0) {
+              if (ip_proto == ip_protocol_icmp) {
+                nat_icmp_internal(ip_hdr, ip_packet, sr, len);
+              }
+            }
+          }
           code = forward_ip_packet(ip_hdr, ip_packet, iface, sr);
           if (code != 0) {
             printf("Error: Could not forward packet\n");
@@ -208,6 +225,7 @@ struct sr_if* sr_get_interface_from_ip(struct sr_instance* sr, uint32_t ip_addr)
 
 int handle_icmp_echo_request(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_if * iface, 
                              struct sr_instance * sr) {
+
 
   /* get structs */
   sr_ip_hdr_t * packet_ip = (sr_ip_hdr_t *) ip_packet;
@@ -537,5 +555,91 @@ int populate_arp_request_ethernet(sr_ethernet_hdr_t * ether_hdr, unsigned char *
   ether_hdr->ether_type = htons(ethertype_arp);
   memcpy(ether_hdr->ether_shost, ether_shost, ETHER_ADDR_LEN);
   memset(ether_hdr->ether_dhost, 255, ETHER_ADDR_LEN);
+  return 0;
+}
+
+int nat_tcp_external(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr) {
+  struct sr_nat_mapping * mapping;
+  sr_tcp_hdr_t * tcp_hdr = (sr_tcp_hdr_t *)(ip_packet + size_ip);
+
+  mapping = sr_nat_lookup_external(sr->nat, tcp_hdr->dest_port, nat_mapping_tcp);
+
+  if (mapping) {
+    tcp_hdr->dest_port = mapping->aux_int;
+    ip_hdr->ip_dst = mapping->ip_int;
+    sr_nat_mapping_destroy(mapping);
+
+    tcp_hdr->checksum = 0;
+    tcp_hdr->checksum = cksum((const void *)tcp_hdr, size_tcp);
+  } else {
+    /* send port unreachable */
+  }
+
+  return 0;
+}
+
+int nat_tcp_internal(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr) {
+  struct sr_nat_mapping * mapping;
+  sr_tcp_hdr_t * tcp_hdr = (sr_tcp_hdr_t *)(ip_packet + size_ip);
+
+  mapping = sr_nat_lookup_internal(sr->nat, ip_hdr->ip_src, tcp_hdr->source_port, nat_mapping_tcp);
+
+  if (!mapping) {
+    struct sr_if * interface = sr_get_interface(sr, "eth2");
+    mapping = sr_nat_insert_mapping(sr->nat, ip_hdr->ip_src, tcp_hdr->source_port, interface->ip, nat_mapping_tcp);
+    if (!mapping) {
+      return -1;
+    }
+  }
+  tcp_hdr->source_port = mapping->aux_ext;
+  ip_hdr->ip_src = mapping->ip_ext;
+  sr_nat_mapping_destroy(mapping);
+
+  tcp_hdr->checksum = 0;
+  tcp_hdr->checksum = cksum((const void *)tcp_hdr, size_tcp);
+
+  return 0;
+}
+
+int nat_icmp_external(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr, int len) {
+  struct sr_nat_mapping * mapping;
+  sr_icmp_hdr_t * icmp_hdr = (sr_icmp_hdr_t *)(ip_packet + size_ip);
+
+  mapping = sr_nat_lookup_external(sr->nat, icmp_hdr->icmp_id, nat_mapping_icmp);
+
+  if (mapping) {
+    icmp_hdr->icmp_id = mapping->aux_int;
+    ip_hdr->ip_dst = mapping->ip_int;
+    sr_nat_mapping_destroy(mapping);
+
+    icmp_hdr->icmp_sum = 0;
+    icmp_hdr->icmp_sum = cksum((const void *)icmp_hdr, len - size_ether - size_ip);
+  } else {
+    /* send port unreachable */
+  }
+
+  return 0;
+}
+
+int nat_icmp_internal(sr_ip_hdr_t * ip_hdr, uint8_t * ip_packet, struct sr_instance * sr, int len) {
+  struct sr_nat_mapping * mapping;
+  sr_icmp_hdr_t * icmp_hdr = (sr_icmp_hdr_t *)(ip_packet + size_ip);
+
+  mapping = sr_nat_lookup_internal(sr->nat, ip_hdr->ip_src, icmp_hdr->icmp_id, nat_mapping_icmp);
+
+  if (!mapping) {
+    struct sr_if * interface = sr_get_interface(sr, "eth2");
+    mapping = sr_nat_insert_mapping(sr->nat, ip_hdr->ip_src, icmp_hdr->icmp_id, interface->ip, nat_mapping_icmp);
+    if (!mapping) {
+      return -1;
+    }
+  }
+  icmp_hdr->icmp_id = mapping->aux_ext;
+  ip_hdr->ip_src = mapping->ip_ext;
+  sr_nat_mapping_destroy(mapping);
+
+  icmp_hdr->icmp_sum = 0;
+  icmp_hdr->icmp_sum = cksum((const void *)icmp_hdr, len - size_ether - size_ip);
+
   return 0;
 }
